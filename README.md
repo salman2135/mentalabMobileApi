@@ -24,10 +24,15 @@ To add the library to your project:
 maven { url ‘https://jitpack.io’ }
 ```
 
+![alt text](https://github.com/salman2135/mentlabMobileApi/blob/master/screenshots/maven.png?raw=true)
+
 * In your app’s build.gradle add the dependency
 ```
 implementation 'com.github.salman2135:mentlabMobileApi:V__0.1'
 ```
+
+![alt text](https://github.com/salman2135/mentlabMobileApi/blob/master/screenshots/app.png?raw=true)
+
 * Add the following line in your anderoid manifest:
 ```
 <uses-permission android:name="android.permission.BLUETOOTH" />
