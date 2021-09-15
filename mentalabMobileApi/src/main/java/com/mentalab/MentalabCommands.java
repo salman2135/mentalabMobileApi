@@ -67,8 +67,9 @@ public class MentalabCommands {
    * Connect to Explore Device
    *
    * @param deviceName name of the device to connect to
+   * @throws CommandFailedException
    * @throws NoBluetoothException
-   * @throws NoBluetoothException
+   * @throws NoConnectionException
    */
   public static void connect(String deviceName)
       throws CommandFailedException, NoBluetoothException, NoConnectionException {
