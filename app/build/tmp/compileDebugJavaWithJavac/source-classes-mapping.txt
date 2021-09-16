@@ -1,4 +1,0 @@
-com/mentalab/BuildConfig.java
- com.mentalab.BuildConfig
-com/mentalab/MainActivity.java
- com.mentalab.MainActivity
