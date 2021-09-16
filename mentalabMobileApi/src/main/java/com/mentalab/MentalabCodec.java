@@ -26,7 +26,7 @@ public class MentalabCodec {
    * @parameter InputStream of device bytes
    * @return Immutable Map of Queues of Numbers
    */
-  public static Map<String, Queue> decode(InputStream stream) throws InvalidDataException {
+  public static Map<String, Queue<Float>> decode(InputStream stream) throws InvalidDataException {
 
     int loop_Count = 0;
     while (loop_Count < 100) {
