@@ -1,4 +1,4 @@
-#Wed Sep 15 16:13:34 CEST 2021
+#Thu Sep 16 14:47:37 CEST 2021
 base.2=/home/ss/AndroidStudioProjects/MobileApiDemo/app/build/intermediates/dex/debug/mergeProjectDexDebug/11/classes.dex
 path.2=11/classes.dex
 base.1=/home/ss/AndroidStudioProjects/MobileApiDemo/app/build/intermediates/dex/debug/mergeProjectDexDebug/0/classes.dex

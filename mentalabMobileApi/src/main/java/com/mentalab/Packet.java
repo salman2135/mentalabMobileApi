@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.ListIterator;
 
 /** Root packet interface */
 abstract class Packet {
@@ -13,28 +14,6 @@ abstract class Packet {
   private byte[] byteBuffer = null;
 
   /** String representation of attributes */
-  static float[] toInt32(byte[] byteArray) throws InvalidDataException, IOException {
-    if (byteArray.length % 3 != 0)
-      throw new InvalidDataException("Byte buffer is not read properly", null);
-    int arraySize = byteArray.length / 3;
-    float[] values = new float[arraySize];
-
-    for (int index = 0; index < byteArray.length; index += 3) {
-      // byte[] buffer = new byte[3];
-      // inputStream.read(buffer, index, 3);
-      // int value = ByteBuffer.wrap(new byte[]{byteArray[index], byteArray[index + 1],
-      // byteArray[index + 2], 0}).order(java.nio.ByteOrder.LITTLE_ENDIAN).getInt();
-      int value =
-          (byteArray[index] & 0xff) << 16
-              | (byteArray[index + 1] & 0xff) << 8
-              | (byteArray[index + 2] & 0xff);
-      values[index / 3] = value;
-      Log.d(TAG, "Value from Int2_32 is: " + value);
-    }
-
-    return values;
-  }
-
   static float[] bytesToFloats(byte[] bytes) {
     if (bytes.length % Float.BYTES != 0) throw new RuntimeException("Illegal length");
     float floats[] = new float[bytes.length / Float.BYTES];
@@ -74,7 +53,7 @@ abstract class Packet {
     DISCONNECT(25) {
       @Override
       public Packet createInstance() {
-        return new DisconnectionPacket();
+        return null;
       }
     },
     INFO(99) {
@@ -160,7 +139,51 @@ abstract class Packet {
 ;
 
 /** Interface for different EEG packets */
-abstract class DataPacket extends Packet {}
+abstract class DataPacket extends Packet {
+  private static final String TAG = "Explore";
+  private static byte channelMask;
+  protected ArrayList<Float> convertedSamples;
+
+  static double[] toInt32(byte[] byteArray) throws InvalidDataException, IOException {
+    if (byteArray.length % 3 != 0)
+      throw new InvalidDataException("Byte buffer is not read properly", null);
+    int arraySize = byteArray.length / 3;
+    double[] values = new double[arraySize];
+
+    for (int index = 0; index < byteArray.length; index += 3) {
+      if (index == 0) {
+        channelMask = byteArray[index];
+      }
+      int signBit = byteArray[index + 2] >> 7;
+      double value = 0;
+      if (signBit == 0)
+        value =
+            ByteBuffer.wrap(
+                    new byte[] {byteArray[index], byteArray[index + 1], byteArray[index + 2], 0})
+                .order(java.nio.ByteOrder.LITTLE_ENDIAN)
+                .getInt();
+      else {
+        int twosComplimentValue =
+            ByteBuffer.wrap(
+                    new byte[] {byteArray[index], byteArray[index + 1], byteArray[index + 2], 0})
+                .order(java.nio.ByteOrder.LITTLE_ENDIAN)
+                .getInt();
+        value = -1 * (Math.pow(2, 24) - twosComplimentValue);
+      }
+      values[index / 3] = value;
+    }
+
+    return values;
+  }
+
+  ArrayList<Float> getVoltageValues() {
+    return convertedSamples;
+  }
+
+  int getChannelCount() {
+    return 8;
+  }
+}
 
 /** Interface for packets related to device information */
 abstract class InfoPacket extends Packet {}
@@ -170,28 +193,47 @@ abstract class UtilPacket extends Packet {}
 
 // class Eeg implements DataPacket {}
 class Eeg98 extends DataPacket {
+  private static int channelNumber = 8;
+
   @Override
   public List<Float> convertData(byte[] byteBuffer) {
-    Log.d("Explore", "calling convert");
     List<Float> values = new ArrayList<Float>();
     try {
-      float[] data = Packet.toInt32(byteBuffer);
+      double[] data = DataPacket.toInt32(byteBuffer);
+
       for (int index = 0; index < data.length; index++) {
-        values.add(data[index]);
+        // skip int representation for status bit
+        if (index % 9 == 0) continue;
+        // calculation for gain adjustment
+        double exgUnit = Math.pow(10, -6);
+        double vRef = 2.4;
+        double gain = (exgUnit * (Math.pow(2, 23) - 1)) * 6;
+        values.add((float) (data[index] * (vRef / gain)));
       }
     } catch (InvalidDataException | IOException e) {
       e.printStackTrace();
     }
+    this.convertedSamples = new ArrayList<>(values);
     return values;
   }
 
   @Override
   public String toString() {
-    return null;
+
+    String data = "ExG 8 channel: [";
+    ListIterator<Float> it = this.convertedSamples.listIterator();
+
+    while (it.hasNext()) {
+      data += it.next() + " ,";
+    }
+    return data + "]";
   }
 }
 
 class Eeg94 extends DataPacket {
+
+  private static List<Float> convertedSamples = null;
+  private static int channelNumber = 8;
   /**
    * Converts binary data stream to human readable voltage values
    *
@@ -200,13 +242,36 @@ class Eeg94 extends DataPacket {
    */
   @Override
   public List<Float> convertData(byte[] byteBuffer) {
-    return new ArrayList<Float>();
+    List<Float> values = new ArrayList<Float>();
+    try {
+      double[] data = DataPacket.toInt32(byteBuffer);
+
+      for (int index = 0; index < data.length; index++) {
+        // skip int representation for status bit
+        if (index % 5 == 0) continue;
+        // calculation for gain adjustment
+        double exgUnit = Math.pow(10, -6);
+        double vRef = 2.4;
+        double gain = (exgUnit * (Math.pow(2, 23) - 1)) * 6;
+        values.add((float) (data[index] * (vRef / gain)));
+      }
+    } catch (InvalidDataException | IOException e) {
+      e.printStackTrace();
+    }
+    this.convertedSamples = new ArrayList<>(values);
+    return values;
   }
 
-  /** String representation of attributes */
   @Override
   public String toString() {
-    return "Eeg94";
+
+    String data = "ExG 8 channel: [";
+    ListIterator<Float> it = this.convertedSamples.listIterator();
+
+    while (it.hasNext()) {
+      data += it.next() + " ,";
+    }
+    return data + "]";
   }
 }
 
@@ -248,22 +313,51 @@ class Eeg99s extends DataPacket {
 
 /** Device related information packet to transmit firmware version, ADC mask and sampling rate */
 class Orientation extends InfoPacket {
-
-  Orientation() {}
+  List<Float> convertedSamples = null;
 
   @Override
   public List<Float> convertData(byte[] byteBuffer) {
     List<Float> listValues = new ArrayList<Float>();
-    float[] values = Packet.bytesToFloats(byteBuffer);
-    for (float number : values) {
-      listValues.add(new Float(number));
+    Log.d("Explore", "length is ........" + byteBuffer.length);
+    for (int index = 0; index < byteBuffer.length; index += 2) {
+
+      int decodedInteger =
+          ByteBuffer.wrap(new byte[] {byteBuffer[index], byteBuffer[index + 1], 0, 0})
+              .order(java.nio.ByteOrder.LITTLE_ENDIAN)
+              .getInt();
+      if (index < 6) {
+        listValues.add((float) (decodedInteger * 0.061));
+      } else if (index < 12) {
+        listValues.add((float) (decodedInteger * 8.750));
+      } else {
+        if (index == 12) {
+          listValues.add((float) (decodedInteger * 1.52 * -1));
+        } else {
+          listValues.add((float) (decodedInteger * 1.52));
+        }
+      }
     }
+    convertedSamples = new ArrayList<Float>(listValues);
     return listValues;
   }
 
   @Override
   public String toString() {
-    return "Orientation";
+    String data = "Orientation packets: [";
+
+    for (int index = 0; index < convertedSamples.size(); index += 1) {
+      if (index % 9 < 3) {
+        data += " accelerometer: " + convertedSamples.get(index);
+      } else if (index % 9 < 6) {
+        data += " magnetometer: " + convertedSamples.get(index);
+      } else {
+        data += "gyroscope: " + convertedSamples.get(index);
+      }
+
+      data += ",";
+    }
+
+    return data + "]";
   }
 }
 

@@ -6,14 +6,18 @@ import com.mentalab.exception.InvalidDataException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+import java.util.concurrent.LinkedTransferQueue;
 
 public class MentalabCodec {
 
   private static final String TAG = "Explore";
+  public static Map<String, Queue<Float>> decodedDataMap = null;
 
   /**
    * Decodes a device raw data stream
@@ -28,45 +32,9 @@ public class MentalabCodec {
    */
   public static Map<String, Queue<Float>> decode(InputStream stream) throws InvalidDataException {
 
-    int loop_Count = 0;
-    while (loop_Count < 100) {
-      int pId = 0;
-      try {
-        byte[] buffer = new byte[1024];
-        // reading PID
-        stream.read(buffer, 0, 1);
-        pId = ByteBuffer.wrap(buffer).order(java.nio.ByteOrder.LITTLE_ENDIAN).getInt();
-        Log.d(TAG, "pid .." + pId);
-        buffer = new byte[1024];
-
-        // reading count
-        stream.read(buffer, 0, 1);
-        int count = ByteBuffer.wrap(buffer).order(java.nio.ByteOrder.LITTLE_ENDIAN).getInt();
-        buffer = new byte[1024];
-
-        // reading payload
-        stream.read(buffer, 0, 2);
-        int payload = ByteBuffer.wrap(buffer).order(java.nio.ByteOrder.LITTLE_ENDIAN).getInt();
-        buffer = new byte[1024];
-
-        // reading timestamp
-        stream.read(buffer, 0, 4);
-        int timeStamp = ByteBuffer.wrap(buffer).order(java.nio.ByteOrder.LITTLE_ENDIAN).getInt();
-
-        Log.d(TAG, "pid .." + pId + " payload is : " + payload);
-
-        // reading payload data
-        buffer = new byte[payload];
-        stream.read(buffer, 0, payload - 4);
-        // parsing payload data
-
-        List<Float> voltageValueArray =
-            parsePayloadData(pId, Arrays.copyOfRange(buffer, 0, buffer.length - 5));
-      } catch (IOException exception) {
-        throw new InvalidDataException("Byte data conversion failed", null);
-      }
-    }
-    return null;
+    ConnectedThread thread = new ConnectedThread(stream);
+    thread.start();
+    return decodedDataMap;
   }
 
   /**
@@ -79,17 +47,95 @@ public class MentalabCodec {
     return new byte[10]; // Some example while stub
   }
 
-  static List<Float> parsePayloadData(int pId, byte[] byteBuffer) {
+  private static Packet parsePayloadData(int pId, byte[] byteBuffer) {
 
     for (Packet.PacketId packetId : Packet.PacketId.values()) {
-      if (packetId.getNumVal() == pId && pId == 146) {
+      if (packetId.getNumVal() == pId) {
         Log.d(TAG, "Converting data for Explore");
         Packet packet = packetId.createInstance();
         if (packet != null) {
-          return packet.convertData(byteBuffer);
+          List<Float> convertedData = packet.convertData(byteBuffer);
+          Log.d(TAG, "Data decoded is " + packet.toString());
+          pushDataInQueue(packet, convertedData);
         }
       }
     }
     return null;
+  }
+
+  static void pushDataInQueue(Packet packet, List<Float> list) {
+    if (packet instanceof DataPacket) {
+      DataPacket dataPacket = (DataPacket) packet;
+      int channelCount = dataPacket.getChannelCount();
+
+      for (int index = 0; index < channelCount; index++) {
+        synchronized (decodedDataMap) {
+          ArrayList<Float> convertedSamples = ((DataPacket) packet).getVoltageValues();
+          String channelKey = "channel" + String.valueOf(index + 1);
+          if (decodedDataMap.get(channelKey) == null) {
+            decodedDataMap.put(
+                "channel" + String.valueOf(index + 1), new LinkedTransferQueue<Float>());
+          }
+          decodedDataMap.get(channelKey).offer(list.get(index));
+        }
+      }
+    }
+  }
+
+  private static class ConnectedThread extends Thread {
+    private final InputStream mmInStream;
+
+    public ConnectedThread(InputStream inputStream) {
+      mmInStream = inputStream;
+      initializeMapInstance();
+    }
+
+    public void run() {
+      int pId = 0;
+      while (true) {
+        try {
+          byte[] buffer = new byte[1024];
+          // reading PID
+          mmInStream.read(buffer, 0, 1);
+          pId = ByteBuffer.wrap(buffer).order(java.nio.ByteOrder.LITTLE_ENDIAN).getInt();
+          Log.d(TAG, "pid .." + pId);
+          buffer = new byte[1024];
+
+          // reading count
+          mmInStream.read(buffer, 0, 1);
+          int count = ByteBuffer.wrap(buffer).order(java.nio.ByteOrder.LITTLE_ENDIAN).getInt();
+          buffer = new byte[1024];
+
+          // reading payload
+          mmInStream.read(buffer, 0, 2);
+          int payload = ByteBuffer.wrap(buffer).order(java.nio.ByteOrder.LITTLE_ENDIAN).getInt();
+          buffer = new byte[1024];
+
+          // reading timestamp
+          mmInStream.read(buffer, 0, 4);
+          int timeStamp = ByteBuffer.wrap(buffer).order(java.nio.ByteOrder.LITTLE_ENDIAN).getInt();
+
+          Log.d(TAG, "pid .." + pId + " payload is : " + payload);
+
+          // reading payload data
+          buffer = new byte[payload - 4];
+          int read = mmInStream.read(buffer, 0, buffer.length);
+          Log.d(TAG, "reading count is ...." + read);
+          // parsing payload data
+
+          Packet packet = parsePayloadData(pId, Arrays.copyOfRange(buffer, 0, buffer.length - 4));
+
+        } catch (IOException exception) {
+          exception.printStackTrace();
+          break;
+        }
+      }
+    }
+
+    void initializeMapInstance() {
+      if (decodedDataMap == null) {
+        decodedDataMap = new HashMap<>();
+      }
+    }
   }
 }

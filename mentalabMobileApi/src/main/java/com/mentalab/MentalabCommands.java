@@ -36,7 +36,7 @@ public class MentalabCommands {
       if (Log.isLoggable(TAG, Log.DEBUG)) {
         Log.d(TAG, "no bluetooth adapter!");
       }
-      return null;
+      throw new NoBluetoothException("No Bluetooth adapter!", null);
     }
 
     final Set<BluetoothDevice> pairedDevices = BA.getBondedDevices();
@@ -67,9 +67,8 @@ public class MentalabCommands {
    * Connect to Explore Device
    *
    * @param deviceName name of the device to connect to
-   * @throws CommandFailedException
-   * @throws NoBluetoothException
    * @throws NoConnectionException
+   * @throws NoBluetoothException
    */
   public static void connect(String deviceName)
       throws CommandFailedException, NoBluetoothException, NoConnectionException {
