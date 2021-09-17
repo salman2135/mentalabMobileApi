@@ -21,7 +21,7 @@ import org.mockito.runners.MockitoJUnitRunner;
 public class UnitTestMentalabCodec {
 
   @Test(expected=InvalidDataException.class)
-  public void addition_isCorrect() throws InvalidDataException {
+  public void nullCheckDecodeIsCorrect() throws InvalidDataException {
       MentalabCodec.decode(null);
   }
 }
