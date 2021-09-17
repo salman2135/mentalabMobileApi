@@ -1,6 +1,5 @@
 package com.mentalab;
 
-import android.util.Log;
 import com.mentalab.exception.InvalidDataException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -12,13 +11,31 @@ import java.util.ListIterator;
 abstract class Packet {
   private static final String TAG = "Explore";
   private byte[] byteBuffer = null;
+  private int dataCount;
 
   /** String representation of attributes */
-  static float[] bytesToFloats(byte[] bytes) {
-    if (bytes.length % Float.BYTES != 0) throw new RuntimeException("Illegal length");
-    float floats[] = new float[bytes.length / Float.BYTES];
-    ByteBuffer.wrap(bytes).order(java.nio.ByteOrder.LITTLE_ENDIAN).asFloatBuffer().get(floats);
-    return floats;
+  static double[] bytesToDouble(byte[] bytes, int numOfbytesPerNumber) throws InvalidDataException {
+    if (bytes.length % numOfbytesPerNumber != 0){
+      throw new InvalidDataException("Illegal length", null);
+    }
+    int arraySize = bytes.length / numOfbytesPerNumber;
+    double[] values = new double[arraySize];
+    for (int index = 0; index < bytes.length; index += numOfbytesPerNumber) {
+      int signBit = bytes[index + numOfbytesPerNumber -1] >> 7;
+      double value;
+
+      value = ByteBuffer.wrap(
+          new byte[] {bytes[index], bytes[index + 1]})
+          .order(java.nio.ByteOrder.LITTLE_ENDIAN)
+          .getShort();
+      if (signBit == 1){
+        value = -1 * (Math.pow(2, 8 * numOfbytesPerNumber) - value);
+      }
+
+
+      values[index / numOfbytesPerNumber] = value;
+    }
+    return values;
   }
 
   /**
@@ -26,10 +43,13 @@ abstract class Packet {
    *
    * @param byteBuffer
    */
-  public abstract List<Float> convertData(byte[] byteBuffer);
+  public abstract List<Float> convertData(byte[] byteBuffer) throws InvalidDataException;
 
   /** String representation of attributes */
   public abstract String toString();
+
+  /** Number of element in each packet */
+  public abstract int getDataCount();
 
   enum PacketId {
     ORIENTATION(13) {
@@ -155,7 +175,7 @@ abstract class DataPacket extends Packet {
         channelMask = byteArray[index];
       }
       int signBit = byteArray[index + 2] >> 7;
-      double value = 0;
+      double value;
       if (signBit == 0)
         value =
             ByteBuffer.wrap(
@@ -176,13 +196,18 @@ abstract class DataPacket extends Packet {
     return values;
   }
 
+  public static byte getChannelMask() {
+    return channelMask;
+  }
+
+  public static void setChannelMask(byte channelMask) {
+    DataPacket.channelMask = channelMask;
+  }
+
   ArrayList<Float> getVoltageValues() {
     return convertedSamples;
   }
 
-  int getChannelCount() {
-    return 8;
-  }
 }
 
 /** Interface for packets related to device information */
@@ -221,19 +246,26 @@ class Eeg98 extends DataPacket {
   public String toString() {
 
     String data = "ExG 8 channel: [";
-    ListIterator<Float> it = this.convertedSamples.listIterator();
 
-    while (it.hasNext()) {
-      data += it.next() + " ,";
+    for (Float convertedSample : this.convertedSamples) {
+      data += convertedSample + " ,";
     }
     return data + "]";
+  }
+
+  /**
+   * Number of element in each packet
+   */
+  @Override
+  public int getDataCount() {
+    return 8;
   }
 }
 
 class Eeg94 extends DataPacket {
 
   private static List<Float> convertedSamples = null;
-  private static int channelNumber = 8;
+  private final int channelNumber = 8;
   /**
    * Converts binary data stream to human readable voltage values
    *
@@ -273,6 +305,14 @@ class Eeg94 extends DataPacket {
     }
     return data + "]";
   }
+
+  /**
+   * Number of element in each packet
+   */
+  @Override
+  public int getDataCount() {
+    return 0;
+  }
 }
 
 class Eeg99 extends DataPacket {
@@ -291,13 +331,21 @@ class Eeg99 extends DataPacket {
   public String toString() {
     return "Eeg99";
   }
+
+  /**
+   * Number of element in each packet
+   */
+  @Override
+  public int getDataCount() {
+    return 0;
+  }
 }
 
 class Eeg99s extends DataPacket {
   /**
    * Converts binary data stream to human readable voltage values
    *
-   * @param byteBuffer
+   * @param byteBuffer byte array with input data
    */
   @Override
   public List<Float> convertData(byte[] byteBuffer) {
@@ -309,6 +357,14 @@ class Eeg99s extends DataPacket {
   public String toString() {
     return "Eeg99s";
   }
+
+  /**
+   * Number of element in each packet
+   */
+  @Override
+  public int getDataCount() {
+    return 0;
+  }
 }
 
 /** Device related information packet to transmit firmware version, ADC mask and sampling rate */
@@ -316,28 +372,24 @@ class Orientation extends InfoPacket {
   List<Float> convertedSamples = null;
 
   @Override
-  public List<Float> convertData(byte[] byteBuffer) {
+  public List<Float> convertData(byte[] byteBuffer) throws InvalidDataException {
     List<Float> listValues = new ArrayList<Float>();
-    Log.d("Explore", "length is ........" + byteBuffer.length);
-    for (int index = 0; index < byteBuffer.length; index += 2) {
+        double[] convertedRawValues = super.bytesToDouble(byteBuffer, 2);
 
-      int decodedInteger =
-          ByteBuffer.wrap(new byte[] {byteBuffer[index], byteBuffer[index + 1], 0, 0})
-              .order(java.nio.ByteOrder.LITTLE_ENDIAN)
-              .getInt();
-      if (index < 6) {
-        listValues.add((float) (decodedInteger * 0.061));
-      } else if (index < 12) {
-        listValues.add((float) (decodedInteger * 8.750));
+    for (int index = 0; index < convertedRawValues.length; index++) {
+      if (index < 3) {
+        listValues.add((float) (convertedRawValues[index] * 0.061));
+      } else if (index < 6) {
+        listValues.add((float) (convertedRawValues[index] * 8.750));
       } else {
-        if (index == 12) {
-          listValues.add((float) (decodedInteger * 1.52 * -1));
+        if (index == 6) {
+          listValues.add((float) (convertedRawValues[index] * 1.52 * -1));
         } else {
-          listValues.add((float) (decodedInteger * 1.52));
+          listValues.add((float) (convertedRawValues[index] * 1.52));
         }
       }
     }
-    convertedSamples = new ArrayList<Float>(listValues);
+    this.convertedSamples = new ArrayList<>(listValues);
     return listValues;
   }
 
@@ -359,6 +411,14 @@ class Orientation extends InfoPacket {
 
     return data + "]";
   }
+
+  /**
+   * Number of element in each packet
+   */
+  @Override
+  public int getDataCount() {
+    return 0;
+  }
 }
 
 /** Device related information packet to transmit firmware version, ADC mask and sampling rate */
@@ -371,6 +431,14 @@ class DeviceInfoPacket extends InfoPacket {
   @Override
   public String toString() {
     return "DeviceInfoPacket";
+  }
+
+  /**
+   * Number of element in each packet
+   */
+  @Override
+  public int getDataCount() {
+    return 0;
   }
 }
 
@@ -388,6 +456,11 @@ class AckPacket extends InfoPacket {
   public String toString() {
     return "AckPacket";
   }
+
+  @Override
+  public int getDataCount() {
+    return 0;
+  }
 }
 
 /** Packet sent from the device to sync clocks */
@@ -400,6 +473,14 @@ class TimeStampPacket extends UtilPacket {
   @Override
   public String toString() {
     return "TimeStampPacket";
+  }
+
+  /**
+   * Number of element in each packet
+   */
+  @Override
+  public int getDataCount() {
+    return 0;
   }
 }
 
@@ -419,5 +500,13 @@ class DisconnectionPacket extends UtilPacket {
   @Override
   public String toString() {
     return "DisconnectionPacket";
+  }
+
+  /**
+   * Number of element in each packet
+   */
+  @Override
+  public int getDataCount() {
+    return 0;
   }
 }

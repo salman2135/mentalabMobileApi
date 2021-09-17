@@ -32,6 +32,10 @@ public class MentalabCodec {
    */
   public static Map<String, Queue<Float>> decode(InputStream stream) throws InvalidDataException {
 
+    if (stream == null) {
+        throw new InvalidDataException("Input stream is null", null);
+    }
+
     ConnectedThread thread = new ConnectedThread(stream);
     thread.start();
     return decodedDataMap;
@@ -47,7 +51,7 @@ public class MentalabCodec {
     return new byte[10]; // Some example while stub
   }
 
-  private static Packet parsePayloadData(int pId, byte[] byteBuffer) {
+  private static Packet parsePayloadData(int pId, byte[] byteBuffer) throws InvalidDataException {
 
     for (Packet.PacketId packetId : Packet.PacketId.values()) {
       if (packetId.getNumVal() == pId) {
@@ -63,10 +67,10 @@ public class MentalabCodec {
     return null;
   }
 
-  static void pushDataInQueue(Packet packet, List<Float> list) {
+  private static void pushDataInQueue(Packet packet, List<Float> list) {
     if (packet instanceof DataPacket) {
       DataPacket dataPacket = (DataPacket) packet;
-      int channelCount = dataPacket.getChannelCount();
+      int channelCount = dataPacket.getDataCount();
 
       for (int index = 0; index < channelCount; index++) {
         synchronized (decodedDataMap) {
@@ -125,14 +129,14 @@ public class MentalabCodec {
 
           Packet packet = parsePayloadData(pId, Arrays.copyOfRange(buffer, 0, buffer.length - 4));
 
-        } catch (IOException exception) {
+        } catch (IOException | InvalidDataException exception) {
           exception.printStackTrace();
-          break;
         }
       }
     }
 
     void initializeMapInstance() {
+
       if (decodedDataMap == null) {
         decodedDataMap = new HashMap<>();
       }
