@@ -4,6 +4,7 @@ import com.mentalab.exception.InvalidDataException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.ListIterator;
 
@@ -15,23 +16,22 @@ abstract class Packet {
 
   /** String representation of attributes */
   static double[] bytesToDouble(byte[] bytes, int numOfbytesPerNumber) throws InvalidDataException {
-    if (bytes.length % numOfbytesPerNumber != 0){
+    if (bytes.length % numOfbytesPerNumber != 0) {
       throw new InvalidDataException("Illegal length", null);
     }
     int arraySize = bytes.length / numOfbytesPerNumber;
     double[] values = new double[arraySize];
     for (int index = 0; index < bytes.length; index += numOfbytesPerNumber) {
-      int signBit = bytes[index + numOfbytesPerNumber -1] >> 7;
+      int signBit = bytes[index + numOfbytesPerNumber - 1] >> 7;
       double value;
 
-      value = ByteBuffer.wrap(
-          new byte[] {bytes[index], bytes[index + 1]})
-          .order(java.nio.ByteOrder.LITTLE_ENDIAN)
-          .getShort();
-      if (signBit == 1){
+      value =
+          ByteBuffer.wrap(new byte[] {bytes[index], bytes[index + 1]})
+              .order(java.nio.ByteOrder.LITTLE_ENDIAN)
+              .getShort();
+      if (signBit == 1) {
         value = -1 * (Math.pow(2, 8 * numOfbytesPerNumber) - value);
       }
-
 
       values[index / numOfbytesPerNumber] = value;
     }
@@ -43,7 +43,7 @@ abstract class Packet {
    *
    * @param byteBuffer
    */
-  public abstract List<Float> convertData(byte[] byteBuffer) throws InvalidDataException;
+  public abstract void convertData(byte[] byteBuffer) throws InvalidDataException;
 
   /** String representation of attributes */
   public abstract String toString();
@@ -207,21 +207,26 @@ abstract class DataPacket extends Packet {
   ArrayList<Float> getVoltageValues() {
     return convertedSamples;
   }
-
 }
 
 /** Interface for packets related to device information */
-abstract class InfoPacket extends Packet {}
+abstract class InfoPacket extends Packet {
+  List<Float> convertedSamples = null;
+  ArrayList<String> attributes;
+}
 
 /** Interface for packets related to device synchronization */
-abstract class UtilPacket extends Packet {}
+abstract class UtilPacket extends Packet {
+
+  protected ArrayList<Float> convertedSamples;
+}
 
 // class Eeg implements DataPacket {}
 class Eeg98 extends DataPacket {
   private static int channelNumber = 8;
 
   @Override
-  public List<Float> convertData(byte[] byteBuffer) {
+  public void convertData(byte[] byteBuffer) {
     List<Float> values = new ArrayList<Float>();
     try {
       double[] data = DataPacket.toInt32(byteBuffer);
@@ -239,7 +244,6 @@ class Eeg98 extends DataPacket {
       e.printStackTrace();
     }
     this.convertedSamples = new ArrayList<>(values);
-    return values;
   }
 
   @Override
@@ -253,9 +257,7 @@ class Eeg98 extends DataPacket {
     return data + "]";
   }
 
-  /**
-   * Number of element in each packet
-   */
+  /** Number of element in each packet */
   @Override
   public int getDataCount() {
     return 8;
@@ -270,10 +272,9 @@ class Eeg94 extends DataPacket {
    * Converts binary data stream to human readable voltage values
    *
    * @param byteBuffer
-   * @return
    */
   @Override
-  public List<Float> convertData(byte[] byteBuffer) {
+  public void convertData(byte[] byteBuffer) {
     List<Float> values = new ArrayList<Float>();
     try {
       double[] data = DataPacket.toInt32(byteBuffer);
@@ -291,7 +292,6 @@ class Eeg94 extends DataPacket {
       e.printStackTrace();
     }
     this.convertedSamples = new ArrayList<>(values);
-    return values;
   }
 
   @Override
@@ -306,9 +306,7 @@ class Eeg94 extends DataPacket {
     return data + "]";
   }
 
-  /**
-   * Number of element in each packet
-   */
+  /** Number of element in each packet */
   @Override
   public int getDataCount() {
     return 0;
@@ -322,9 +320,7 @@ class Eeg99 extends DataPacket {
    * @param byteBuffer
    */
   @Override
-  public List<Float> convertData(byte[] byteBuffer) {
-    return new ArrayList<Float>();
-  }
+  public void convertData(byte[] byteBuffer) {}
 
   /** String representation of attributes */
   @Override
@@ -332,9 +328,7 @@ class Eeg99 extends DataPacket {
     return "Eeg99";
   }
 
-  /**
-   * Number of element in each packet
-   */
+  /** Number of element in each packet */
   @Override
   public int getDataCount() {
     return 0;
@@ -348,9 +342,7 @@ class Eeg99s extends DataPacket {
    * @param byteBuffer byte array with input data
    */
   @Override
-  public List<Float> convertData(byte[] byteBuffer) {
-    return new ArrayList<Float>();
-  }
+  public void convertData(byte[] byteBuffer) {}
 
   /** String representation of attributes */
   @Override
@@ -358,9 +350,7 @@ class Eeg99s extends DataPacket {
     return "Eeg99s";
   }
 
-  /**
-   * Number of element in each packet
-   */
+  /** Number of element in each packet */
   @Override
   public int getDataCount() {
     return 0;
@@ -369,12 +359,17 @@ class Eeg99s extends DataPacket {
 
 /** Device related information packet to transmit firmware version, ADC mask and sampling rate */
 class Orientation extends InfoPacket {
-  List<Float> convertedSamples = null;
+
+
+
+  public Orientation() {
+    attributes = new ArrayList<String>(Arrays.asList("Acc X", "Acc Y", "Acc Z", "Mag X", "MagY", "Mag Z", "Gyro X", "Gyro Y", "Gyro Z"));
+  }
 
   @Override
-  public List<Float> convertData(byte[] byteBuffer) throws InvalidDataException {
+  public void convertData(byte[] byteBuffer) throws InvalidDataException {
     List<Float> listValues = new ArrayList<Float>();
-        double[] convertedRawValues = super.bytesToDouble(byteBuffer, 2);
+    double[] convertedRawValues = super.bytesToDouble(byteBuffer, 2);
 
     for (int index = 0; index < convertedRawValues.length; index++) {
       if (index < 3) {
@@ -390,7 +385,6 @@ class Orientation extends InfoPacket {
       }
     }
     this.convertedSamples = new ArrayList<>(listValues);
-    return listValues;
   }
 
   @Override
@@ -412,30 +406,24 @@ class Orientation extends InfoPacket {
     return data + "]";
   }
 
-  /**
-   * Number of element in each packet
-   */
+  /** Number of element in each packet */
   @Override
   public int getDataCount() {
-    return 0;
+    return 9;
   }
 }
 
 /** Device related information packet to transmit firmware version, ADC mask and sampling rate */
 class DeviceInfoPacket extends InfoPacket {
   @Override
-  public List<Float> convertData(byte[] byteBuffer) {
-    return new ArrayList<Float>();
-  }
+  public void convertData(byte[] byteBuffer) {}
 
   @Override
   public String toString() {
     return "DeviceInfoPacket";
   }
 
-  /**
-   * Number of element in each packet
-   */
+  /** Number of element in each packet */
   @Override
   public int getDataCount() {
     return 0;
@@ -448,9 +436,7 @@ class DeviceInfoPacket extends InfoPacket {
  */
 class AckPacket extends InfoPacket {
   @Override
-  public List<Float> convertData(byte[] byteBuffer) {
-    return new ArrayList<Float>();
-  }
+  public void convertData(byte[] byteBuffer) {}
 
   @Override
   public String toString() {
@@ -466,18 +452,14 @@ class AckPacket extends InfoPacket {
 /** Packet sent from the device to sync clocks */
 class TimeStampPacket extends UtilPacket {
   @Override
-  public List<Float> convertData(byte[] byteBuffer) {
-    return new ArrayList<Float>();
-  }
+  public void convertData(byte[] byteBuffer) {}
 
   @Override
   public String toString() {
     return "TimeStampPacket";
   }
 
-  /**
-   * Number of element in each packet
-   */
+  /** Number of element in each packet */
   @Override
   public int getDataCount() {
     return 0;
@@ -492,9 +474,7 @@ class DisconnectionPacket extends UtilPacket {
    * @param byteBuffer
    */
   @Override
-  public List<Float> convertData(byte[] byteBuffer) {
-    return new ArrayList<Float>();
-  }
+  public void convertData(byte[] byteBuffer) {}
 
   /** String representation of attributes */
   @Override
@@ -502,9 +482,32 @@ class DisconnectionPacket extends UtilPacket {
     return "DisconnectionPacket";
   }
 
+  /** Number of element in each packet */
+  @Override
+  public int getDataCount() {
+    return 0;
+  }
+}
+
+class Environment extends UtilPacket {
+  ArrayList<String> attributes = new ArrayList(Arrays.asList("temperature", "light", "battery"));
+  float temperature, light, battery;
+
   /**
-   * Number of element in each packet
+   * Converts binary data stream to human readable voltage values
+   *
+   * @param byteBuffer
    */
+  @Override
+  public void convertData(byte[] byteBuffer) throws InvalidDataException {}
+
+  /** String representation of attributes */
+  @Override
+  public String toString() {
+    return null;
+  }
+
+  /** Number of element in each packet */
   @Override
   public int getDataCount() {
     return 0;

@@ -9,10 +9,9 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Queue;
-import java.util.concurrent.LinkedTransferQueue;
+import java.util.concurrent.ConcurrentLinkedDeque;
 
 public class MentalabCodec {
 
@@ -32,9 +31,6 @@ public class MentalabCodec {
    */
   public static Map<String, Queue<Float>> decode(InputStream stream) throws InvalidDataException {
 
-    if (stream == null) {
-        throw new InvalidDataException("Input stream is null", null);
-    }
 
     ConnectedThread thread = new ConnectedThread(stream);
     thread.start();
@@ -58,16 +54,16 @@ public class MentalabCodec {
         Log.d(TAG, "Converting data for Explore");
         Packet packet = packetId.createInstance();
         if (packet != null) {
-          List<Float> convertedData = packet.convertData(byteBuffer);
+          packet.convertData(byteBuffer);
           Log.d(TAG, "Data decoded is " + packet.toString());
-          pushDataInQueue(packet, convertedData);
+          pushDataInQueue(packet);
         }
       }
     }
     return null;
   }
 
-  private static void pushDataInQueue(Packet packet, List<Float> list) {
+  private static void pushDataInQueue(Packet packet) {
     if (packet instanceof DataPacket) {
       DataPacket dataPacket = (DataPacket) packet;
       int channelCount = dataPacket.getDataCount();
@@ -75,12 +71,30 @@ public class MentalabCodec {
       for (int index = 0; index < channelCount; index++) {
         synchronized (decodedDataMap) {
           ArrayList<Float> convertedSamples = ((DataPacket) packet).getVoltageValues();
-          String channelKey = "channel" + String.valueOf(index + 1);
+          String channelKey = "Channel " + String.valueOf(index + 1);
           if (decodedDataMap.get(channelKey) == null) {
             decodedDataMap.put(
-                "channel" + String.valueOf(index + 1), new LinkedTransferQueue<Float>());
+                channelKey, new ConcurrentLinkedDeque<>());
           }
-          decodedDataMap.get(channelKey).offer(list.get(index));
+
+          ConcurrentLinkedDeque<Float> floats = (ConcurrentLinkedDeque) decodedDataMap.get(channelKey);
+          floats.offerFirst(((DataPacket) packet).convertedSamples.get(index));
+        }
+      }
+    }
+    else if(packet instanceof InfoPacket){
+
+      int channelCount = packet.getDataCount();
+
+      for (int index = 0; index < channelCount; index++) {
+        synchronized (decodedDataMap) {
+          String channelKey = ((InfoPacket) packet).attributes.get(index);
+          if (decodedDataMap.get(channelKey) == null) {
+            decodedDataMap.put(
+                channelKey, new ConcurrentLinkedDeque<>());
+          }
+          ConcurrentLinkedDeque<Float> floats = (ConcurrentLinkedDeque)decodedDataMap.get(channelKey);
+          floats.offerFirst(((InfoPacket) packet).convertedSamples.get(index));
         }
       }
     }
@@ -131,6 +145,7 @@ public class MentalabCodec {
 
         } catch (IOException | InvalidDataException exception) {
           exception.printStackTrace();
+          break;
         }
       }
     }

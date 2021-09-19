@@ -9,7 +9,6 @@ import java.io.ByteArrayInputStream;
 import java.nio.ByteBuffer;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.runners.MockitoJUnitRunner;
 
 /**
  * Example local unit test, which will execute on the development machine (host).
@@ -17,7 +16,7 @@ import org.mockito.runners.MockitoJUnitRunner;
  * @see <a href="http://d.android.com/tools/testing">Testing documentation</a>
  */
 
-@RunWith(MockitoJUnitRunner.class)
+
 public class UnitTestMentalabCodec {
 
   @Test(expected=InvalidDataException.class)
