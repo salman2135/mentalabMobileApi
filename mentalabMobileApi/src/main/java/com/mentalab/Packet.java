@@ -296,7 +296,7 @@ class Eeg94 extends DataPacket {
   @Override
   public String toString() {
 
-    String data = "ExG 8 channel: [";
+    String data = "ExG 4 channel: [";
     ListIterator<Float> it = this.convertedSamples.listIterator();
 
     while (it.hasNext()) {
