@@ -75,6 +75,10 @@ public class MentalabCommands {
     UUID uuid = UUID.fromString("00001101-0000-1000-8000-00805f9b34fb");
     final BluetoothAdapter btAdapter = BluetoothAdapter.getDefaultAdapter();
 
+    if(btAdapter == null){
+      throw new NoBluetoothException("Bluetooth service not available", null);
+    }
+
     final Set<BluetoothDevice> pairedDevices = btAdapter.getBondedDevices();
     Log.e(TAG, "Number of bonded device found is: " + pairedDevices.size());
     BluetoothDevice btDevice = null;
@@ -149,7 +153,7 @@ public class MentalabCommands {
   softReset()
           throws CommandFailedException, NoConnectionException, NoBluetoothException {...}
 
-
+*/
 
 
   /**
