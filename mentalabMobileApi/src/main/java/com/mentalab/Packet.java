@@ -223,7 +223,6 @@ abstract class UtilPacket extends Packet {
 
 // class Eeg implements DataPacket {}
 class Eeg98 extends DataPacket {
-  private static int channelNumber = 8;
 
   @Override
   public void convertData(byte[] byteBuffer) {
@@ -309,7 +308,7 @@ class Eeg94 extends DataPacket {
   /** Number of element in each packet */
   @Override
   public int getDataCount() {
-    return 0;
+    return 4;
   }
 }
 
