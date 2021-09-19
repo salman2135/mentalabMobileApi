@@ -31,7 +31,6 @@ public class MentalabCodec {
    */
   public static Map<String, Queue<Float>> decode(InputStream stream) throws InvalidDataException {
 
-
     ConnectedThread thread = new ConnectedThread(stream);
     thread.start();
     return decodedDataMap;
@@ -73,16 +72,15 @@ public class MentalabCodec {
           ArrayList<Float> convertedSamples = ((DataPacket) packet).getVoltageValues();
           String channelKey = "Channel " + String.valueOf(index + 1);
           if (decodedDataMap.get(channelKey) == null) {
-            decodedDataMap.put(
-                channelKey, new ConcurrentLinkedDeque<>());
+            decodedDataMap.put(channelKey, new ConcurrentLinkedDeque<>());
           }
 
-          ConcurrentLinkedDeque<Float> floats = (ConcurrentLinkedDeque) decodedDataMap.get(channelKey);
+          ConcurrentLinkedDeque<Float> floats =
+              (ConcurrentLinkedDeque) decodedDataMap.get(channelKey);
           floats.offerFirst(((DataPacket) packet).convertedSamples.get(index));
         }
       }
-    }
-    else if(packet instanceof InfoPacket){
+    } else if (packet instanceof InfoPacket) {
 
       int channelCount = packet.getDataCount();
 
@@ -90,10 +88,10 @@ public class MentalabCodec {
         synchronized (decodedDataMap) {
           String channelKey = ((InfoPacket) packet).attributes.get(index);
           if (decodedDataMap.get(channelKey) == null) {
-            decodedDataMap.put(
-                channelKey, new ConcurrentLinkedDeque<>());
+            decodedDataMap.put(channelKey, new ConcurrentLinkedDeque<>());
           }
-          ConcurrentLinkedDeque<Float> floats = (ConcurrentLinkedDeque)decodedDataMap.get(channelKey);
+          ConcurrentLinkedDeque<Float> floats =
+              (ConcurrentLinkedDeque) decodedDataMap.get(channelKey);
           floats.offerFirst(((InfoPacket) packet).convertedSamples.get(index));
         }
       }

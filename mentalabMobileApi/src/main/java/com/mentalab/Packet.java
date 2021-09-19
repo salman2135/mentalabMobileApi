@@ -360,10 +360,11 @@ class Eeg99s extends DataPacket {
 /** Device related information packet to transmit firmware version, ADC mask and sampling rate */
 class Orientation extends InfoPacket {
 
-
-
   public Orientation() {
-    attributes = new ArrayList<String>(Arrays.asList("Acc X", "Acc Y", "Acc Z", "Mag X", "MagY", "Mag Z", "Gyro X", "Gyro Y", "Gyro Z"));
+    attributes =
+        new ArrayList<String>(
+            Arrays.asList(
+                "Acc X", "Acc Y", "Acc Z", "Mag X", "MagY", "Mag Z", "Gyro X", "Gyro Y", "Gyro Z"));
   }
 
   @Override
