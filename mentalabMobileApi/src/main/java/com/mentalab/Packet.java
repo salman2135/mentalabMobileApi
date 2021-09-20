@@ -85,7 +85,7 @@ abstract class Packet {
     EEG94(144) {
       @Override
       public Packet createInstance() {
-        return null;
+        return new Eeg94();
       }
     },
     EEG98(146) {
@@ -223,6 +223,7 @@ abstract class UtilPacket extends Packet {
 
 // class Eeg implements DataPacket {}
 class Eeg98 extends DataPacket {
+  private static int channelNumber = 8;
 
   @Override
   public void convertData(byte[] byteBuffer) {
@@ -266,7 +267,7 @@ class Eeg98 extends DataPacket {
 class Eeg94 extends DataPacket {
 
   private static List<Float> convertedSamples = null;
-  private final int channelNumber = 8;
+  private final int channelNumber = 4;
   /**
    * Converts binary data stream to human readable voltage values
    *
@@ -308,7 +309,7 @@ class Eeg94 extends DataPacket {
   /** Number of element in each packet */
   @Override
   public int getDataCount() {
-    return 4;
+    return this.channelNumber;
   }
 }
 
