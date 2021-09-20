@@ -21,9 +21,16 @@ public class MentalabCodec {
   /**
    * Decodes a device raw data stream
    *
-   * <p>Incoming bytes from Bluetooth are converted to an immutable Map of Queues of Numbers. ExG
-   * channels are saved as single precision floating point numbers (Float) in the unit of mVolt.
-   * Launches one worker thread on first invocation.
+   * <p>Incoming bytes from Bluetooth are converted to an immutable Map of Double Ended Queue of
+   * Float numbers. ExG channels are saved as single precision floating point numbers (Float) in the
+   * unit of mVolt. Launches one worker thread on first invocation. Currently the it provides the
+   * following data queues from Explore device: Channel1, Channel2...ChannelN where N is the maximum
+   * available numbers of channel of the device. Acc_X, Acc_Y, Acc_Z in the units of mg/LSB Gyro_X,
+   * Gyro_Y and Gyro_Z in mdps/LSB MAG_X, Mag_Y, Mag_Z in mgauss/LSB To get a specific instance of
+   * the queue:
+   *
+   * <p>Map<String, Queue<Float>> map = MentalabCodec.decode(stream); Queue<Float> accXMap =
+   * map.get("Acc_X").poll() Queue<Float> Channel2 = map.get("Channel2").poll()
    *
    * @throws InvalidDataException throws when invalid data is received
    * @parameter InputStream of device bytes
@@ -70,7 +77,7 @@ public class MentalabCodec {
       for (int index = 0; index < channelCount; index++) {
         synchronized (decodedDataMap) {
           ArrayList<Float> convertedSamples = ((DataPacket) packet).getVoltageValues();
-          String channelKey = "Channel " + String.valueOf(index + 1);
+          String channelKey = "Channel_" + String.valueOf(index + 1);
           if (decodedDataMap.get(channelKey) == null) {
             decodedDataMap.put(channelKey, new ConcurrentLinkedDeque<>());
           }

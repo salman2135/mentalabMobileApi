@@ -179,13 +179,13 @@ abstract class DataPacket extends Packet {
       if (signBit == 0)
         value =
             ByteBuffer.wrap(
-                new byte[] {byteArray[index], byteArray[index + 1], byteArray[index + 2], 0})
+                    new byte[] {byteArray[index], byteArray[index + 1], byteArray[index + 2], 0})
                 .order(java.nio.ByteOrder.LITTLE_ENDIAN)
                 .getInt();
       else {
         int twosComplimentValue =
             ByteBuffer.wrap(
-                new byte[] {byteArray[index], byteArray[index + 1], byteArray[index + 2], 0})
+                    new byte[] {byteArray[index], byteArray[index + 1], byteArray[index + 2], 0})
                 .order(java.nio.ByteOrder.LITTLE_ENDIAN)
                 .getInt();
         value = -1 * (Math.pow(2, 24) - twosComplimentValue);
@@ -363,7 +363,8 @@ class Orientation extends InfoPacket {
     attributes =
         new ArrayList<String>(
             Arrays.asList(
-                "Acc X", "Acc Y", "Acc Z", "Mag X", "MagY", "Mag Z", "Gyro X", "Gyro Y", "Gyro Z"));
+                "Acc_X", "Acc_Y", "Acc_Z", "Mag_X", "Mag_Y", "Mag_Z", "Gyro_X", "Gyro_Y",
+                "Gyro_Z"));
   }
 
   @Override

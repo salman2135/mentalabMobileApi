@@ -75,7 +75,7 @@ public class MentalabCommands {
     UUID uuid = UUID.fromString("00001101-0000-1000-8000-00805f9b34fb");
     final BluetoothAdapter btAdapter = BluetoothAdapter.getDefaultAdapter();
 
-    if(btAdapter == null){
+    if (btAdapter == null) {
       throw new NoBluetoothException("Bluetooth service not available", null);
     }
 
@@ -149,18 +149,16 @@ public class MentalabCommands {
    * @throws NoBluetoothException
    */
   /*
-  public static void
-  softReset()
-          throws CommandFailedException, NoConnectionException, NoBluetoothException {...}
+    public static void
+    softReset()
+            throws CommandFailedException, NoConnectionException, NoBluetoothException {...}
 
-*/
-
+  */
 
   /**
    * Returns the device data stream
    *
-   * @throws NoConnectionException when Bluetooth connection is
-   *           lost during communication
+   * @throws NoConnectionException when Bluetooth connection is lost during communication
    * @throws NoBluetoothException
    * @return InputStream of raw bytes
    */
