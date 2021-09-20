@@ -28,9 +28,11 @@ public class MentalabCodec {
    * available numbers of channel of the device. Acc_X, Acc_Y, Acc_Z in the units of mg/LSB. Gyro_X,
    * Gyro_Y and Gyro_Z in mdps/LSB. MAG_X, Mag_Y, Mag_Z in mgauss/LSB. To get a specific instance of
    * the queue:
-   *
-   * <p>Map<String, Queue<Float>> map = MentalabCodec.decode(stream); Queue<Float> accXMap =
-   * map.get("Acc_X").poll() Queue<Float> Channel2 = map.get("Channel2").poll()
+   * <pre>{@code
+   * Map<String, Queue<Float>> map = MentalabCodec.decode(stream);
+   * Queue<Float> accXMap = map.get("Acc_X").poll();
+   * Queue<Float> channel2 = map.get("Channel2").poll();
+   * }<pre>
    *
    * @throws InvalidDataException throws when invalid data is received
    * @parameter InputStream of device bytes
