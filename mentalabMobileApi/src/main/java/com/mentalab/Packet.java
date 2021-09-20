@@ -179,13 +179,13 @@ abstract class DataPacket extends Packet {
       if (signBit == 0)
         value =
             ByteBuffer.wrap(
-                    new byte[] {byteArray[index], byteArray[index + 1], byteArray[index + 2], 0})
+                new byte[] {byteArray[index], byteArray[index + 1], byteArray[index + 2], 0})
                 .order(java.nio.ByteOrder.LITTLE_ENDIAN)
                 .getInt();
       else {
         int twosComplimentValue =
             ByteBuffer.wrap(
-                    new byte[] {byteArray[index], byteArray[index + 1], byteArray[index + 2], 0})
+                new byte[] {byteArray[index], byteArray[index + 1], byteArray[index + 2], 0})
                 .order(java.nio.ByteOrder.LITTLE_ENDIAN)
                 .getInt();
         value = -1 * (Math.pow(2, 24) - twosComplimentValue);
@@ -266,7 +266,6 @@ class Eeg98 extends DataPacket {
 
 class Eeg94 extends DataPacket {
 
-  private static List<Float> convertedSamples = null;
   private final int channelNumber = 4;
   /**
    * Converts binary data stream to human readable voltage values
