@@ -7,7 +7,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 
-public class PuSubManager {
+class PuSubManager {
   private static PuSubManager pubSubSingleton = null;
   private Map<String, ArrayList<Consumer<?>>> topicsSubscribers =
       new HashMap<String, ArrayList<Consumer<?>>>();

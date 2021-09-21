@@ -24,7 +24,7 @@ public class MentalabCodec {
    * <p>Incoming bytes from Bluetooth are converted to an immutable Map of Double Ended Queue of
    * Float numbers. ExG channels are saved as single precision floating point numbers (Float) in the
    * unit of mVolt. Launches one worker thread on first invocation. Currently the it provides the
-   * following data queues from Explore device: Channel1, Channel2...ChannelN where N is the maximum
+   * following data queues from Explore device: Channel_1, Channel_2...Channel_N where N is the maximum
    * available numbers of channel of the device. Acc_X, Acc_Y, Acc_Z in the units of mg/LSB. Gyro_X,
    * Gyro_Y and Gyro_Z in mdps/LSB. MAG_X, Mag_Y, Mag_Z in mgauss/LSB. To get a specific instance of
    * the queue:

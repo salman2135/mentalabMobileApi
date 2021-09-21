@@ -9,7 +9,6 @@ Explore mobile API is Mentalab's open-source biosignal acquisition API for worki
 Requirements
 ==================
 
-* Java Development Kit from here: <http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html>
 * Android Studio with SDK bundle from this link: <https://developer.android.com/studio>
 * Android device with at least Android Lollipop(OS version 5.1)
 
@@ -39,10 +38,10 @@ implementation 'com.github.salman2135:mentlabMobileApi:V__0.1'
 ```
 * Sync gradle and Mentlab API is ready to use!
 
-A video demonstating above steps is also available: **TO DO**
+A video demonstating above steps is also available:
 
 
-[![SC2 Video](https://img.youtube.com/vi/--b-9HrKK6w/0.jpg)](http://www.youtube.com/watch?v=--b-9HrKK6w)
+[![SC2 Video](https://img.youtube.com/vi/nP57MqztEUI/0.jpg)](https://youtu.be/nP57MqztEUI)
 
 Please check troubleshooting section of this document in case any problem occurs.
 
@@ -50,7 +49,7 @@ Please check troubleshooting section of this document in case any problem occurs
 Documentation
 =============
 
-For the full documentation of the API, please visit **TO DO**
+For the full documentation of the API, please visit <https://github.com/mentalab-hub/explore-mobile-api/blob/main/docs>`
 
 Troubleshooting
 ===============
@@ -68,4 +67,4 @@ Authors
 
 License
 =======
-This project is licensed under the `MIT <https://github.com/salman2135/MLX_mobile_API/blob/main/LICENSE>` license. You can reach us at contact@mentalab.com.
+This project is licensed under the MIT license at <https://github.com/mentalab-hub/explore-mobile-api/blob/main/LICENSE>. You can reach us at contact@mentalab.com.
