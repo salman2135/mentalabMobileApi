@@ -180,13 +180,13 @@ abstract class DataPacket extends Packet {
       if (signBit == 0)
         value =
             ByteBuffer.wrap(
-                new byte[] {byteArray[index], byteArray[index + 1], byteArray[index + 2], 0})
+                    new byte[] {byteArray[index], byteArray[index + 1], byteArray[index + 2], 0})
                 .order(ByteOrder.LITTLE_ENDIAN)
                 .getInt();
       else {
         int twosComplimentValue =
             ByteBuffer.wrap(
-                new byte[] {byteArray[index], byteArray[index + 1], byteArray[index + 2], 0})
+                    new byte[] {byteArray[index], byteArray[index + 1], byteArray[index + 2], 0})
                 .order(ByteOrder.LITTLE_ENDIAN)
                 .getInt();
         value = -1 * (Math.pow(2, 24) - twosComplimentValue);
@@ -364,7 +364,8 @@ class Orientation extends InfoPacket {
     attributes =
         new ArrayList<String>(
             Arrays.asList(
-                "Acc_X", "Acc_Y", "Acc_Z", "Mag_X", "Mag_Y", "Mag_Z", "Gyro_X", "Gyro_Y", "Gyro_Z"));
+                "Acc_X", "Acc_Y", "Acc_Z", "Mag_X", "Mag_Y", "Mag_Z", "Gyro_X", "Gyro_Y",
+                "Gyro_Z"));
   }
 
   @Override
@@ -493,7 +494,7 @@ class DisconnectionPacket extends UtilPacket {
 class Environment extends InfoPacket {
   float temperature, light, battery;
 
-  public Environment(){
+  public Environment() {
     super.attributes = new ArrayList(Arrays.asList("Temperature ", "Light ", "Battery "));
   }
   /**
@@ -505,11 +506,25 @@ class Environment extends InfoPacket {
   public void convertData(byte[] byteBuffer) throws InvalidDataException {
     List<Float> listValues = new ArrayList<Float>();
 
-    listValues.add((float) ByteBuffer.wrap(new byte[] {byteBuffer[0], 0, 0, 0}).order(ByteOrder.LITTLE_ENDIAN).getInt());
-    listValues.add((float) (ByteBuffer.wrap(new byte[] {byteBuffer[1], byteBuffer[2], 0, 0}).order(
-        ByteOrder.LITTLE_ENDIAN).getInt()) * (1000 / 4095) );
-    float batteryLevelRaw = (float) ((ByteBuffer.wrap(new byte[]{byteBuffer[3], byteBuffer[4], 0, 0})
-            .order(ByteOrder.LITTLE_ENDIAN).getInt() * 16.8 / 6.8) * (1.8 / 2457));
+    listValues.add(
+        (float)
+            ByteBuffer.wrap(new byte[] {byteBuffer[0], 0, 0, 0})
+                .order(ByteOrder.LITTLE_ENDIAN)
+                .getInt());
+    listValues.add(
+        (float)
+                (ByteBuffer.wrap(new byte[] {byteBuffer[1], byteBuffer[2], 0, 0})
+                    .order(ByteOrder.LITTLE_ENDIAN)
+                    .getInt())
+            * (1000 / 4095));
+    float batteryLevelRaw =
+        (float)
+            ((ByteBuffer.wrap(new byte[] {byteBuffer[3], byteBuffer[4], 0, 0})
+                        .order(ByteOrder.LITTLE_ENDIAN)
+                        .getInt()
+                    * 16.8
+                    / 6.8)
+                * (1.8 / 2457));
 
     listValues.add(getBatteryParcentage(batteryLevelRaw));
     this.convertedSamples = new ArrayList<>(listValues);
@@ -517,7 +532,7 @@ class Environment extends InfoPacket {
 
   /** String representation of attributes */
   @Override
-  public String toString(){
+  public String toString() {
     String data = "Environment packets: [";
 
     for (int index = 0; index < convertedSamples.size(); index += 1) {
@@ -541,31 +556,23 @@ class Environment extends InfoPacket {
     return 3;
   }
 
-  float getBatteryParcentage(float voltage){
+  float getBatteryParcentage(float voltage) {
     double parcentage = 0;
-    if (voltage < 3.1){
+    if (voltage < 3.1) {
       parcentage = 1;
-    }
-    else if (voltage < 3.5){
+    } else if (voltage < 3.5) {
       parcentage = (1 + (voltage - 3.1) / .4 * 10);
-    }
-
-    else if (voltage < 3.8){
+    } else if (voltage < 3.8) {
       parcentage = 10 + (voltage - 3.5) / .3 * 40;
-    }
-    else if (voltage < 3.9){
+    } else if (voltage < 3.9) {
       parcentage = 40 + (voltage - 3.8) / .1 * 20;
-    }
-    else if (voltage < 4){
+    } else if (voltage < 4) {
       parcentage = 60 + (voltage - 3.9) / .1 * 15;
-    }
-    else if (voltage < 4.1){
+    } else if (voltage < 4.1) {
       parcentage = 75 + (voltage - 4.) / .1 * 15;
-    }
-    else if (voltage < 4.2){
+    } else if (voltage < 4.2) {
       parcentage = 90 + (voltage - 4.1) / .1 * 10;
-    }
-    else {
+    } else {
       parcentage = 100;
     }
 
