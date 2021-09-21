@@ -3,6 +3,7 @@ package com.mentalab;
 import com.mentalab.exception.InvalidDataException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -27,7 +28,7 @@ abstract class Packet {
 
       value =
           ByteBuffer.wrap(new byte[] {bytes[index], bytes[index + 1]})
-              .order(java.nio.ByteOrder.LITTLE_ENDIAN)
+              .order(ByteOrder.LITTLE_ENDIAN)
               .getShort();
       if (signBit == 1) {
         value = -1 * (Math.pow(2, 8 * numOfbytesPerNumber) - value);
@@ -61,7 +62,7 @@ abstract class Packet {
     ENVIRONMENT(19) {
       @Override
       public Packet createInstance() {
-        return null;
+        return new Environment();
       }
     },
     TIMESTAMP(27) {
@@ -179,14 +180,14 @@ abstract class DataPacket extends Packet {
       if (signBit == 0)
         value =
             ByteBuffer.wrap(
-                    new byte[] {byteArray[index], byteArray[index + 1], byteArray[index + 2], 0})
-                .order(java.nio.ByteOrder.LITTLE_ENDIAN)
+                new byte[] {byteArray[index], byteArray[index + 1], byteArray[index + 2], 0})
+                .order(ByteOrder.LITTLE_ENDIAN)
                 .getInt();
       else {
         int twosComplimentValue =
             ByteBuffer.wrap(
-                    new byte[] {byteArray[index], byteArray[index + 1], byteArray[index + 2], 0})
-                .order(java.nio.ByteOrder.LITTLE_ENDIAN)
+                new byte[] {byteArray[index], byteArray[index + 1], byteArray[index + 2], 0})
+                .order(ByteOrder.LITTLE_ENDIAN)
                 .getInt();
         value = -1 * (Math.pow(2, 24) - twosComplimentValue);
       }
@@ -363,8 +364,7 @@ class Orientation extends InfoPacket {
     attributes =
         new ArrayList<String>(
             Arrays.asList(
-                "Acc_X", "Acc_Y", "Acc_Z", "Mag_X", "Mag_Y", "Mag_Z", "Gyro_X", "Gyro_Y",
-                "Gyro_Z"));
+                "Acc_X", "Acc_Y", "Acc_Z", "Mag_X", "Mag_Y", "Mag_Z", "Gyro_X", "Gyro_Y", "Gyro_Z"));
   }
 
   @Override
@@ -490,27 +490,85 @@ class DisconnectionPacket extends UtilPacket {
   }
 }
 
-class Environment extends UtilPacket {
-  ArrayList<String> attributes = new ArrayList(Arrays.asList("temperature", "light", "battery"));
+class Environment extends InfoPacket {
   float temperature, light, battery;
 
+  public Environment(){
+    super.attributes = new ArrayList(Arrays.asList("Temperature ", "Light ", "Battery "));
+  }
   /**
    * Converts binary data stream to human readable voltage values
    *
    * @param byteBuffer
    */
   @Override
-  public void convertData(byte[] byteBuffer) throws InvalidDataException {}
+  public void convertData(byte[] byteBuffer) throws InvalidDataException {
+    List<Float> listValues = new ArrayList<Float>();
+
+    listValues.add((float) ByteBuffer.wrap(new byte[] {byteBuffer[0], 0, 0, 0}).order(ByteOrder.LITTLE_ENDIAN).getInt());
+    listValues.add((float) (ByteBuffer.wrap(new byte[] {byteBuffer[1], byteBuffer[2], 0, 0}).order(
+        ByteOrder.LITTLE_ENDIAN).getInt()) * (1000 / 4095) );
+    float batteryLevelRaw = (float) ((ByteBuffer.wrap(new byte[]{byteBuffer[3], byteBuffer[4], 0, 0})
+            .order(ByteOrder.LITTLE_ENDIAN).getInt() * 16.8 / 6.8) * (1.8 / 2457));
+
+    listValues.add(getBatteryParcentage(batteryLevelRaw));
+    this.convertedSamples = new ArrayList<>(listValues);
+  }
 
   /** String representation of attributes */
   @Override
-  public String toString() {
-    return null;
+  public String toString(){
+    String data = "Environment packets: [";
+
+    for (int index = 0; index < convertedSamples.size(); index += 1) {
+      if (index % 9 < 3) {
+        data += " Temperature: " + convertedSamples.get(index);
+      } else if (index % 9 < 6) {
+        data += " Light: " + convertedSamples.get(index);
+      } else {
+        data += "Battery: " + convertedSamples.get(index);
+      }
+
+      data += ",";
+    }
+
+    return data + "]";
   }
 
   /** Number of element in each packet */
   @Override
   public int getDataCount() {
-    return 0;
+    return 3;
+  }
+
+  float getBatteryParcentage(float voltage){
+    double parcentage = 0;
+    if (voltage < 3.1){
+      parcentage = 1;
+    }
+    else if (voltage < 3.5){
+      parcentage = (1 + (voltage - 3.1) / .4 * 10);
+    }
+
+    else if (voltage < 3.8){
+      parcentage = 10 + (voltage - 3.5) / .3 * 40;
+    }
+    else if (voltage < 3.9){
+      parcentage = 40 + (voltage - 3.8) / .1 * 20;
+    }
+    else if (voltage < 4){
+      parcentage = 60 + (voltage - 3.9) / .1 * 15;
+    }
+    else if (voltage < 4.1){
+      parcentage = 75 + (voltage - 4.) / .1 * 15;
+    }
+    else if (voltage < 4.2){
+      parcentage = 90 + (voltage - 4.1) / .1 * 10;
+    }
+    else {
+      parcentage = 100;
+    }
+
+    return (float) parcentage;
   }
 }
